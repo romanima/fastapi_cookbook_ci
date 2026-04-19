@@ -23,17 +23,21 @@ async def client():
 
 @pytest.mark.asyncio
 async def test_recipes_crud(client):
-    # 1. Сбрасываем БД
+    # 1. Сбрасываем БД — удаляем и создаём все таблицы
     await reset_db(engine)
 
-    # 2. Ждём завершения операций
+    # 2. Даём время на завершение операций
     await asyncio.sleep(0.1)
 
-    # 3. Проверяем, что таблица recipes создана
+    # 3. Проверяем, что таблица recipes создана (используем run_sync)
     async with engine.connect() as conn:
-        inspector = inspect(conn)
-        tables = await conn.run_sync(inspector.get_table_names)
+        def _check_tables(connection):
+            inspector = inspect(connection)
+            return inspector.get_table_names()
+
+        tables = await conn.run_sync(_check_tables)
         assert "recipes" in tables, "Таблица recipes не создана после reset_db"
+
 
     # 4. Отправляем запрос к API
     response = await client.post(
