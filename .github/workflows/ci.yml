@@ -1,6 +1,5 @@
 name: FastAPI Code Quality Pipeline
 
-
 on:
   push:
     branches: [main, develop, feature/*, bugfix/*]
@@ -28,10 +27,10 @@ jobs:
           pip install flake8 isort black mypy
 
       - name: Check code formatting with Black
-        run: black .
+        run: black . --check
 
       - name: Sort imports with isort
-        run: isort .
+        run: isort . --check-only
 
       - name: Lint with flake8
         run: flake8 --exclude venv,__pycache__,build,dist --max-line-length=88
@@ -39,16 +38,22 @@ jobs:
       - name: Skip mypy (temporary)
         run: echo "Skipping mypy temporarily"
 
+  test:
+    name: Run Tests
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-
 
       - name: Install dependencies
         run: |
@@ -65,7 +70,3 @@ jobs:
           file: ./coverage.xml
           flags: unittests
           name: codecov-umbrella
-      - name: Run tests
-        run: |
-          export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-          pytest tests/
