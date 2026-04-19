@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+from python_advanced.module_26_fastapi.homework.database import async_session
 
 DB_URL = "sqlite+aiosqlite:///./db.sqlite3"
 
