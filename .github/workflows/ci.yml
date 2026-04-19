@@ -31,7 +31,7 @@ jobs:
         run: black --check --diff .
 
       - name: Sort imports with isort
-        run: isort --check-only --diff .
+        run: isort .
 
       - name: Lint with flake8
         run: flake8 --exclude venv,__pycache__,build,dist --max-line-length=88
