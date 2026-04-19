@@ -11,7 +11,7 @@ AsyncSessionLocal = sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
     autoflush=False  # явно указываем autoflush, чтобы избежать значения по умолчанию
-)
+)  # type: ignore
 
 async def get_async_session():
     """
