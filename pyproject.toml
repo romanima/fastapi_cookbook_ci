@@ -4,11 +4,3 @@ python_files = ["test_*.py"]
 python_classes = ["Test"]
 python_functions = ["test"]
 asyncio_mode = "auto"
-[tool.mypy]
-python_version = "3.8"
-[[tool.mypy.overrides]]
-module = "database"
-ignore_errors = true
-[[tool.mypy.overrides]]
-module = "crud"
-ignore_errors = true
