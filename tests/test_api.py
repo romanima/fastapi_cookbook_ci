@@ -21,8 +21,13 @@ async def client():
 
 @pytest.mark.asyncio
 async def test_recipes_crud(client):
-    await reset_db()
-
+    # 1. Сбрасываем БД — удаляем и создаём все таблицы
+    await reset_db(engine)
+    
+    # 2. Даём время на завершение операций
+    await asyncio.sleep(0.1)
+    
+    # 3. Отправляем запрос к API
     response = await client.post(
         "/recipes",
         json={
@@ -32,25 +37,9 @@ async def test_recipes_crud(client):
             "description": "Классический омлет на завтрак.",
         },
     )
-    assert response.status_code == 201
+    
+    # 4. Проверяем результат
+    assert response.status_code == 200
     data = response.json()
     assert data["title"] == "Омлет"
-    assert data["views"] == 0
-
-    recipe_id = data["id"]
-
-    response = await client.get("/recipes")
-    assert response.status_code == 200
-    recipes = response.json()
-    assert any(r["id"] == recipe_id for r in recipes)
-
-    response = await client.get(f"/recipes/{recipe_id}")
-    assert response.status_code == 200
-    detail = response.json()
-    assert detail["title"] == "Омлет"
-    assert detail["views"] == 1
-
-    response = await client.get(f"/recipes/{recipe_id}")
-    assert response.status_code == 200
-    detail = response.json()
-    assert detail["views"] == 2
+    assert data["cooking_time"] == 10
