@@ -51,7 +51,7 @@ async def test_recipes_crud(client):
     )
 
     # 5. Проверяем результат
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["title"] == "Омлет"
     assert data["cooking_time"] == 10
