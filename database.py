@@ -1,9 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import declarative_base
+from base import Base 
 
 DB_URL = "sqlite+aiosqlite:///./db.sqlite3"
-
-Base = declarative_base()
 
 engine: AsyncEngine = create_async_engine(
     DB_URL,
