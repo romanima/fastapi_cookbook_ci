@@ -1,16 +1,21 @@
-from sqlalchemy import Column, DateTime, Integer, String, Text
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, String, Text
 
 from database import Base
 
 
 class Recipe(Base):
+    """
+    Модель рецепта.
+    """
+
     __tablename__ = "recipes"
 
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(200), index=True, nullable=False)
-    cooking_time = Column(Integer, nullable=False)
-    ingredients = Column(Text, nullable=False)
-    description = Column(Text, nullable=False)
-    views = Column(Integer, default=0)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(255), nullable=False, index=True, doc="Название рецепта")
+    cooking_time = Column(Integer, nullable=False, doc="Время готовки (минуты)")
+    ingredients = Column(Text, nullable=False, doc="Ингредиенты через запятую")
+    description = Column(Text, nullable=False, doc="Текстовое описание рецепта")
+    views = Column(Integer, default=0, nullable=False, doc="Количество просмотров")
+
+    def __repr__(self):
+        return f"<Recipe(id={self.id}, title='{self.title}')>"

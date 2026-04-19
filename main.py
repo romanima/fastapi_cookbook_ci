@@ -1,133 +1,81 @@
+from contextlib import asynccontextmanager
 from typing import List
 
+import uvicorn
 from fastapi import Depends, FastAPI, HTTPException
-from sqlalchemy import asc, desc
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
-from database import async_session, engine
-from models import Base, Recipe
-from schemas import RecipeCreate, RecipeOut, RecipeUpdate
+import crud
+from database import get_async_session, init_db
+from schemas import RecipeCreate, RecipeDetails, RecipeList
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Управление жизненным циклом приложения.
+
+    Выполняет инициализацию базы данных перед запуском сервиса.
+    Позволяет впоследствии добавить очистку ресурсов при остановке.
+    Вместо deprecated
+    @app.on_event("startup")
+    async def on_startup():
+        await init_db()
+    """
+    await init_db()
+    yield
+    # Возможная логика для остановки и очистки ресурсов здесь
+
 
 app = FastAPI(
-    title="Cookbook API",
-    description="API для кулинарной книги с возможностью получения и создания рецептов",
+    title="Кулинарная книга API",
+    description="Асинхронный бэкенд-сервис" " для хранения и предоставления рецептов.",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 
-@app.on_event("startup")
-async def startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+@app.get("/recipes", response_model=List[RecipeList])
+async def get_recipes(session: AsyncSession = Depends(get_async_session)):
+    """
+    Получить список всех рецептов с сортировкой по
+    популярности и времени готовки.
+
+    - Возвращает отсортированный список рецептов.
+    """
+    return await crud.get_recipes(session)
 
 
-@app.on_event("shutdown")
-async def shutdown():
-    await engine.dispose()
+@app.get("/recipes/{recipe_id}", response_model=RecipeDetails)
+async def get_recipe(
+    recipe_id: int, session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Получить детальную информацию о рецепте по идентификатору.
 
-
-async def get_session():
-    async with async_session() as session:
-        yield session
-
-
-@app.get(
-    "/recipes",
-    response_model=List[RecipeOut],
-    summary="Получить список всех рецептов",
-    description="Возвращает отсортированный список рецептов: "
-                "сначала по количеству просмотров (по убыванию),"
-                " затем по времени приготовления (по возрастанию)",
-)
-async def get_recipes(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(
-        select(Recipe).order_by(desc(Recipe.views), asc(Recipe.cooking_time))
-    )
-    recipes = result.scalars().all()
-    return recipes
-
-
-@app.get(
-    "/recipes/{recipe_id}",
-    response_model=RecipeOut,
-    summary="Получить детальный рецепт",
-    description="Возвращает полную информацию о"
-                " конкретном рецепте и увеличивает"
-                " счётчик просмотров",
-)
-async def get_recipe(recipe_id: int, session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Recipe).where(Recipe.id == recipe_id))
-    recipe = result.scalar_one_or_none()
+    - Увеличивает количество просмотров рецепта при каждом запросе.
+    - Возвращает подробную информацию:
+    название, время готовки, ингредиенты, описание, количество просмотров.
+    - В случае отсутствия рецепта возвращает 404 ошибку.
+    """
+    recipe = await crud.get_recipe_details(session, recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Рецепт не найден")
-    recipe.views += 1
-    await session.commit()
     return recipe
 
 
-@app.post(
-    "/recipes",
-    response_model=RecipeOut,
-    summary="Создать новый рецепт",
-    description="Добавляет новый рецепт в базу данных",
-)
+@app.post("/recipes", response_model=RecipeDetails, status_code=201)
 async def create_recipe(
-    recipe: RecipeCreate, session: AsyncSession = Depends(get_session)
+    recipe: RecipeCreate, session: AsyncSession = Depends(get_async_session)
 ):
     """
-    Создаёт новый рецепт в базе данных.
+    Создать новый рецепт.
+
+    - Принимает данные рецепта.
+    - Возвращает созданный рецепт с полным описанием.
     """
-    db_recipe = Recipe(**recipe.dict())
-    session.add(db_recipe)
-    await session.commit()
-    await session.refresh(db_recipe)
-    return db_recipe
+    return await crud.create_recipe(session, recipe)
 
 
-@app.put(
-    "/recipes/{recipe_id}",
-    response_model=RecipeOut,
-    summary="Обновить рецепт",
-    description="Обновляет существующий рецепт",
-)
-async def update_recipe(
-    recipe_id: int,
-    recipe_update: RecipeUpdate,
-    session: AsyncSession = Depends(get_session),
-):
-    """
-    Обновляет существующий рецепт.
-    """
-    result = await session.execute(select(Recipe).where(Recipe.id == recipe_id))
-    db_recipe = result.scalar_one_or_none()
-
-    if not db_recipe:
-        raise HTTPException(status_code=404, detail="Рецепт не найден")
-
-    for key, value in recipe_update.dict().items():
-        setattr(db_recipe, key, value)
-
-    await session.commit()
-    await session.refresh(db_recipe)
-    return db_recipe
-
-
-@app.delete(
-    "/recipes/{recipe_id}",
-    summary="Удалить рецепт",
-    description="Удаляет рецепт из базы данных",
-)
-async def delete_recipe(recipe_id: int, session: AsyncSession = Depends(get_session)):
-    """
-    Удаляет рецепт по ID.
-    """
-    result = await session.execute(select(Recipe).where(Recipe.id == recipe_id))
-    db_recipe = result.scalar_one_or_none()
-
-    if not db_recipe:
-        raise HTTPException(status_code=404, detail="Рецепт не найден")
-
-    await session.delete(db_recipe)
-    await session.commit()
-    return {"message": "Рецепт успешно удалён"}
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

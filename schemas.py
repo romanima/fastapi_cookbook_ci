@@ -1,29 +1,36 @@
-from datetime import datetime
-from typing import Optional
+from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, constr
 
 
-class RecipeBase(BaseModel):
-    title: str
-    cooking_time: int
-    ingredients: str
+class RecipeList(BaseModel):
+    """Краткая информация о рецепте (для списка)."""
+
+    id: int
+    title: constr(max_length=255)
+    cooking_time: int = Field(..., description="Время готовки в минутах")
+    views: int = Field(..., description="Количество просмотров")
+
+    model_config = {"from_attributes": True}
+
+
+class RecipeCreate(BaseModel):
+    """Схема запроса создания рецепта."""
+
+    title: constr(max_length=255)
+    cooking_time: int = Field(..., gt=0, description="Время готовки в " "минутах (>0)")
+    ingredients: List[constr(strip_whitespace=True, min_length=1)]
     description: str
 
 
-class RecipeCreate(RecipeBase):
-    pass
+class RecipeDetails(BaseModel):
+    """Полная информация о рецепте (детально)."""
 
-
-class RecipeUpdate(RecipeBase):
-    pass
-
-
-class RecipeOut(RecipeBase):
     id: int
+    title: constr(max_length=255)
+    cooking_time: int
+    ingredients: List[str]
+    description: str
     views: int
-    created_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
-        json_encoders = {datetime: lambda v: v.isoformat()}
+    model_config = {"from_attributes": True}

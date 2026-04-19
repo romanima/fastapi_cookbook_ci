@@ -1,41 +1,56 @@
-from fastapi.testclient import TestClient
-from ..main import app
+import os
+import sys
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+from database import reset_db
+from main import app
+
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 
-client = TestClient(app)
+@pytest.fixture
+async def client():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        yield ac
 
-def test_get_recipes():
-    response = client.get("/recipes")
-    assert response.status_code == 200
-    assert isinstance(response.json(), list)
 
-def test_create_recipe():
-    recipe_data = {
-        "title": "Тестовое блюдо",
-        "cooking_time": 30,
-        "ingredients": "Ингредиенты",
-        "description": "Описание"
-    }
-    response = client.post("/recipes", json=recipe_data)
-    assert response.status_code == 200
+@pytest.mark.asyncio
+async def test_recipes_crud(client):
+    await reset_db()
+
+    response = await client.post(
+        "/recipes",
+        json={
+            "title": "Омлет",
+            "cooking_time": 10,
+            "ingredients": ["яйца", "молоко", "масло"],
+            "description": "Классический омлет на завтрак.",
+        },
+    )
+    assert response.status_code == 201
     data = response.json()
-    assert data["title"] == recipe_data["title"]
-    assert "id" in data
+    assert data["title"] == "Омлет"
+    assert data["views"] == 0
 
-def test_get_recipe_by_id():
-    # Сначала создаём рецепт
-    recipe_data = {
-        "title": "Блюдо для теста ID",
-        "cooking_time": 45,
-        "ingredients": "Тестовые ингредиенты",
-        "description": "Тестовое описание"
-    }
-    create_response = client.post("/recipes", json=recipe_data)
-    recipe_id = create_response.json()["id"]
+    recipe_id = data["id"]
 
-    # Теперь получаем его по ID
-    get_response = client.get(f"/recipes/{recipe_id}")
-    assert get_response.status_code == 200
-    data = get_response.json()
-    assert data["id"] == recipe_id
-    assert data["title"] == recipe_data["title"]
+    response = await client.get("/recipes")
+    assert response.status_code == 200
+    recipes = response.json()
+    assert any(r["id"] == recipe_id for r in recipes)
+
+    response = await client.get(f"/recipes/{recipe_id}")
+    assert response.status_code == 200
+    detail = response.json()
+    assert detail["title"] == "Омлет"
+    assert detail["views"] == 1
+
+    response = await client.get(f"/recipes/{recipe_id}")
+    assert response.status_code == 200
+    detail = response.json()
+    assert detail["views"] == 2
