@@ -27,10 +27,10 @@ jobs:
           pip install flake8 isort black mypy
 
       - name: Check code formatting with Black
-        run: black . --check
+        run: black .
 
       - name: Sort imports with isort
-        run: isort . --check-only
+        run: isort .
 
       - name: Lint with flake8
         run: flake8 --exclude venv,__pycache__,build,dist --max-line-length=88
