@@ -1,24 +1,26 @@
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
+*.py[cod]
+*$py.class
+
+# Databases
+*.sqlite3
+*.db
+
+# Virtual environments
 venv/
+env/
 .venv/
-ENV/
-.env
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-.ipynb_checkpoints/
+
+# Test & coverage
 .pytest_cache/
 .coverage
-.coverage.*
-.cache
-.hypothesis/
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
