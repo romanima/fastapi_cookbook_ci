@@ -1,5 +1,6 @@
 from sqlalchemy import asc, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Mapped
 
 from models import Recipe
 from schemas import RecipeCreate
