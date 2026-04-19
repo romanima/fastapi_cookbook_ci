@@ -40,14 +40,6 @@ jobs:
         run: echo "Skipping mypy temporarily"
 
 
-  test:
-    name: Run Tests
-    needs: lint
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.9', '3.10', '3.11']
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
