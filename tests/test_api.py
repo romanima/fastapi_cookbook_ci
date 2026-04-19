@@ -3,6 +3,7 @@ import sys
 import pytest
 import asyncio
 import pytest
+from sqlalchemy import inspect
 from httpx import ASGITransport, AsyncClient
 
 from database import reset_db, engine
