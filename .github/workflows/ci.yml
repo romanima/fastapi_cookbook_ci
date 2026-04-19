@@ -36,8 +36,8 @@ jobs:
       - name: Lint with flake8
         run: flake8 --exclude venv,__pycache__,build,dist --max-line-length=88
 
-      - name: Type checking with mypy
-        run: mypy .
+      - name: Run mypy (minimal)
+        run: mypy . --disallow-untyped-defs
 
   test:
     name: Run Tests
