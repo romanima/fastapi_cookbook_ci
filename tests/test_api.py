@@ -4,7 +4,7 @@ import sys
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from .database import reset_db
+from database import reset_db
 from main import app
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
